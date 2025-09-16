@@ -3,411 +3,427 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Tasks — Projects</title>
+  <title>Tasks — Projects & Routines</title>
   <link rel="manifest" href="manifest.webmanifest">
   <style>
     :root{
-      --accent: #0ea5a4;
-      --bg: #fbfcfd;
-      --card: #ffffff;
-      --muted: #6b7280;
-      --radius: 12px;
-      --tap: 48px; /* target size */
+      --accent:#0ea5a4; --bg:#f7fbfb; --card:#fff; --muted:#6b7280; --radius:12px;
     }
-    html,body{height:100%;margin:0;font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;}
-    body{background:linear-gradient(#f6f9fb, #fbfcfd);display:flex;align-items:flex-start;justify-content:center;padding:28px;}
-    .app{width:100%;max-width:820px;background:var(--card);box-shadow:0 6px 20px rgba(2,6,23,0.08);border-radius:var(--radius);padding:18px;box-sizing:border-box}
-    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-    header h1{font-size:18px;margin:0}
-    .topbar{display:flex;gap:8px;align-items:center}
-    .project-select{height:40px;border-radius:8px;border:1px solid #e6eef0;padding:6px 10px;background:#fff}
-    .btn{height:40px;padding:0 12px;border-radius:8px;border:0;background:var(--accent);color:white;font-weight:600;cursor:pointer}
+    html,body{height:100%;margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial;background:linear-gradient(#f6fbfb,#fbfcfd);color:#0b1220}
+    .app{max-width:920px;margin:20px auto;padding:16px;background:var(--card);border-radius:12px;box-shadow:0 6px 20px rgba(2,6,23,0.06)}
+    header{display:flex;justify-content:space-between;align-items:center;gap:8px}
+    header h1{margin:0;font-size:18px}
+    .controls{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
+    .project-select, .input, .btn{height:44px;border-radius:10px;border:1px solid #e6eef0;padding:8px 12px;background:#fff}
+    .btn{cursor:pointer;background:var(--accent);color:white;border:0;font-weight:600}
     .btn.ghost{background:transparent;color:var(--accent);border:1px solid rgba(14,165,164,0.12)}
-    .controls{display:flex;gap:8px;align-items:center;margin-bottom:10px}
-    .add-task{display:flex;gap:8px;margin-bottom:10px}
-    .add-task input[type="text"]{flex:1;height:44px;padding:10px;border-radius:10px;border:1px solid #e6eef0;font-size:16px}
-    .projects-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
-    .project-chip{padding:6px 10px;border-radius:999px;border:1px solid #e6eef0;background:#fff;cursor:pointer}
-    .project-chip.active{background:linear-gradient(90deg,var(--accent), #38b2ac);color:white;border:0}
-    .meta{color:var(--muted);font-size:13px;margin-bottom:12px}
-    ul.task-list{list-style:disc; padding-left:20px; margin:0}
-    ul.task-list li{padding:8px 6px; display:flex; align-items:center; gap:10px;}
-    label.task{display:inline-flex; align-items:center; gap:12px; flex:1; cursor:pointer; user-select:none}
-    /* Custom circular toggle that *behaves* like a radio visually but is actually a checkbox */
-    input[type="checkbox"].toggle{
-      -webkit-appearance:none; appearance:none;
-      width:22px; height:22px; border-radius:50%;
-      border:2px solid var(--accent); display:inline-block; vertical-align:middle;
-      position:relative; flex:0 0 22px; margin:0;
-    }
-    input[type="checkbox"].toggle:checked{
-      background:var(--accent);
-      box-shadow: inset 0 0 0 3px white;
-    }
-    .task-text{font-size:16px;line-height:1.2}
-    .done .task-text{ text-decoration:line-through; opacity:0.45 }
-    .task-actions{display:flex;gap:8px;align-items:center}
-    .icon-btn{height:34px;width:34px;border-radius:8px;border:0;background:transparent;cursor:pointer;font-size:16px}
-    .small-muted{font-size:13px;color:var(--muted)}
-    footer{margin-top:12px;display:flex;justify-content:space-between;align-items:center;gap:8px}
-    .danger{color:#ef4444}
-    @media (max-width:520px){
-      .app{padding:14px}
-      .btn{height:40px}
-    }
+    .row{display:flex;gap:8px;align-items:center}
+    .left-col{width:36%;min-width:220px}
+    .right-col{flex:1}
+    .projects-list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+    .project-item{display:flex;align-items:center;gap:8px;padding:10px;border-radius:10px;border:1px solid #f0f4f5;background:#fff;cursor:pointer}
+    .project-item.active{box-shadow:inset 0 0 0 2px rgba(14,165,164,0.08)}
+    .project-color{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px}
+    .meta{color:var(--muted);font-size:13px;margin-top:8px}
+    .task-list{list-style:disc;padding-left:20px;margin:12px 0}
+    li.task{display:flex;align-items:center;gap:10px;padding:8px 6px;border-radius:8px}
+    .task .toggle{width:22px;height:22px;border-radius:50%;border:2px solid var(--accent);display:inline-block;position:relative;flex:0 0 22px}
+    .task .toggle.done{background:var(--accent);box-shadow:inset 0 0 0 3px #fff}
+    .task-text{flex:1}
+    .done .task-text{ text-decoration:line-through;opacity:0.45}
+    .task-meta{font-size:12px;color:var(--muted)}
+    .small{font-size:13px;color:var(--muted)}
+    .chip{padding:6px 8px;border-radius:999px;border:1px solid #e6eef0;background:#fff;cursor:pointer}
+    .area{background:#f8fbfb;padding:10px;border-radius:10px;border:1px solid #f0f4f5}
+    .timeline{display:flex;flex-direction:column;gap:8px}
+    .timeline-event{display:flex;align-items:center;gap:12px;padding:8px;border-radius:8px;border:1px solid #eef6f6;background:#fff}
+    .timer{font-weight:700}
+    footer{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+    @media (max-width:860px){.left-col{width:100%}.right-col{width:100%}.row{flex-direction:column;align-items:stretch}}
   </style>
 </head>
 <body>
   <div class="app" role="application" aria-labelledby="appTitle">
     <header>
-      <h1 id="appTitle">Tasks — Projects</h1>
-      <div class="topbar">
-        <button id="newProjectBtn" class="btn ghost" title="New project">+ Project</button>
-        <button id="clearCompleted" class="btn" title="Clear completed">Clear done</button>
+      <h1 id="appTitle">Tasks — Projects & Routines</h1>
+      <div class="row">
+        <button id="newProjectBtn" class="btn ghost">+ Project</button>
+        <button id="newRoutineBtn" class="btn ghost">+ Routine</button>
       </div>
     </header>
 
     <div class="controls">
-      <select id="projectSelect" class="project-select" aria-label="Select project"></select>
-      <button id="renameProjectBtn" class="btn ghost" title="Rename project">Rename</button>
-      <button id="deleteProjectBtn" class="btn ghost danger" title="Delete project">Delete</button>
+      <div class="left-col">
+        <div class="area">
+          <div style="display:flex;gap:8px;align-items:center">
+            <select id="projectSelect" class="project-select" aria-label="Select project"></select>
+            <button id="renameProjectBtn" class="chip">Rename</button>
+            <button id="deleteProjectBtn" class="chip">Delete</button>
+          </div>
+          <div class="projects-list" id="projectsList"></div>
+          <div class="meta" id="projectStats"></div>
+        </div>
+      </div>
+
+      <div class="right-col">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+          <input id="taskInput" class="input" type="text" placeholder="New task text (press Enter or Add)" />
+          <input id="taskTime" class="input" type="time" style="width:120px" />
+          <input id="taskDate" class="input" type="date" style="width:150px" />
+          <button id="addTaskBtn" class="btn">Add</button>
+        </div>
+
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+          <button id="toggleViewBtn" class="chip">Timeline View</button>
+          <button id="clearCompleted" class="chip">Clear Done</button>
+          <button id="applyRoutineBtn" class="chip">Apply Routine</button>
+          <label class="small" style="margin-left:auto">Notify <input id="notifyToggle" type="checkbox" style="margin-left:6px"></label>
+        </div>
+
+        <div id="mainView" class="area">
+          <div id="tasksContainer"></div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button id="exportBtn" class="btn ghost">Export</button>
+          <button id="importBtn" class="btn ghost">Import</button>
+        </div>
+      </div>
     </div>
-
-    <div class="add-task">
-      <input id="taskInput" type="text" placeholder="Add a task to the selected project and press Enter" aria-label="New task">
-      <button id="addTaskBtn" class="btn">Add</button>
-    </div>
-
-    <div class="meta" id="metaInfo"></div>
-
-    <ul id="taskList" class="task-list" aria-live="polite"></ul>
 
     <footer>
-      <div class="small-muted">Data stored locally on this device (no cloud).</div>
-      <div>
-        <button id="exportBtn" class="btn ghost" title="Export JSON">Export</button>
-        <button id="importBtn" class="btn ghost" title="Import JSON">Import</button>
-      </div>
+      <div class="small">Local only. To sync later we can add iCloud / Dropbox / WebDAV.</div>
+      <div class="small">Tips: drag tasks to reorder. Tap a task to edit.</div>
     </footer>
   </div>
 
   <script>
-    /* ======= Simple iPad-friendly Tasks + Projects app =======
-       - Projects contain tasks.
-       - Tasks are toggled via circular checkbox (styled like radio).
-       - Completed tasks are crossed out.
-       - Data persists to localStorage under key TASKS_APP_v1
-    ===========================================================*/
+/* Enhanced Tasks app: Projects, Routines, Timeline, Timer, Notifications.
+   Store: localStorage key TASKS_APP_v2
+*/
+const STORAGE_KEY = 'TASKS_APP_v2';
 
-    const STORAGE_KEY = 'TASKS_APP_v1';
+function uid(){ return Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7); }
+function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c])); }
 
-    function uid(){
-      return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,8);
-    }
+let state = { projects: [], routines: [], selectedProjectId: null, settings: {notify:false} };
 
-    // safe text escaping
-    function escapeHtml(s){
-      return String(s).replace(/[&<>"']/g, c => ({
-        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"
-      }[c]));
-    }
+// DOM refs
+const projectSelect = document.getElementById('projectSelect');
+const projectsList = document.getElementById('projectsList');
+const projectStats = document.getElementById('projectStats');
+const taskInput = document.getElementById('taskInput');
+const taskDate = document.getElementById('taskDate');
+const taskTime = document.getElementById('taskTime');
+const addTaskBtn = document.getElementById('addTaskBtn');
+const tasksContainer = document.getElementById('tasksContainer');
+const toggleViewBtn = document.getElementById('toggleViewBtn');
+const newProjectBtn = document.getElementById('newProjectBtn');
+const renameProjectBtn = document.getElementById('renameProjectBtn');
+const deleteProjectBtn = document.getElementById('deleteProjectBtn');
+const newRoutineBtn = document.getElementById('newRoutineBtn');
+const applyRoutineBtn = document.getElementById('applyRoutineBtn');
+const exportBtn = document.getElementById('exportBtn');
+const importBtn = document.getElementById('importBtn');
+const clearCompletedBtn = document.getElementById('clearCompleted');
+const notifyToggle = document.getElementById('notifyToggle');
 
-    // default data structure
-    let state = {
-      projects: [],
-      selectedProjectId: null
-    };
+let timelineMode = false;
 
-    // DOM refs
-    const projectSelect = document.getElementById('projectSelect');
-    const newProjectBtn = document.getElementById('newProjectBtn');
-    const addTaskBtn = document.getElementById('addTaskBtn');
-    const taskInput = document.getElementById('taskInput');
-    const taskList = document.getElementById('taskList');
-    const metaInfo = document.getElementById('metaInfo');
-    const renameProjectBtn = document.getElementById('renameProjectBtn');
-    const deleteProjectBtn = document.getElementById('deleteProjectBtn');
-    const clearCompletedBtn = document.getElementById('clearCompleted');
-    const exportBtn = document.getElementById('exportBtn');
-    const importBtn = document.getElementById('importBtn');
+// Storage
+function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function load(){ try{ const raw = localStorage.getItem(STORAGE_KEY); if(raw) state = JSON.parse(raw); else seed(); }catch(e){ console.warn(e); seed(); } }
+function seed(){
+  state = {
+    projects: [
+      { id: uid(), name:'Inbox', color:'#ffd166', emoji:'📥', tasks: [
+        { id: uid(), text:'Welcome — try the Focus Timer', done:false, date:null, time:null, duration:25, repeat:null, createdAt:Date.now() },
+      ] }
+    ],
+    routines: [
+      { id: uid(), name:'Morning', items:[ 'Make bed','Brush teeth','Coffee' ], createdAt:Date.now() }
+    ],
+    selectedProjectId: null,
+    settings: { notify:false }
+  };
+  state.selectedProjectId = state.projects[0].id;
+  save();
+}
 
-    function save(){
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    }
+// Utilities
+function findProject(id){ return state.projects.find(p=>p.id===id); }
+function currentProject(){ return findProject(state.selectedProjectId); }
 
-    function load(){
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if(!raw) return false;
-      try{
-        const parsed = JSON.parse(raw);
-        if(parsed && Array.isArray(parsed.projects)) { state = parsed; return true; }
-      }catch(e){ console.warn('Failed to parse state', e) }
-      return false;
-    }
+// Render
+function renderProjects(){
+  projectSelect.innerHTML=''; projectsList.innerHTML='';
+  state.projects.forEach(p=>{
+    const opt = document.createElement('option'); opt.value=p.id; opt.textContent=p.name; projectSelect.appendChild(opt);
+    const div = document.createElement('div'); div.className='project-item'+(p.id===state.selectedProjectId?' active':'');
+    div.dataset.id=p.id;
+    div.innerHTML = `<div class="project-color" style="background:${p.color}">${p.emoji||'📁'}</div>
+                     <div style="flex:1"><strong>${escapeHtml(p.name)}</strong><div class="small">${p.tasks.length} task${p.tasks.length===1?'':'s'}</div></div>
+                     <div class="small">${p.tasks.filter(t=>t.done).length} done</div>`;
+    div.addEventListener('click', ()=>{ state.selectedProjectId = p.id; save(); render(); });
+    projectsList.appendChild(div);
+  });
+  if(state.selectedProjectId) projectSelect.value = state.selectedProjectId;
+  projectStats.textContent = currentProject()? `${currentProject().tasks.length} task(s)` : 'No project selected';
+}
 
-    function createProject(name){
-      const id = uid();
-      const project = { id, name: name || 'New Project', tasks: [] };
-      state.projects.push(project);
-      state.selectedProjectId = id;
-      save(); render();
-    }
+function formatTime(dateStr, timeStr){
+  if(!dateStr && !timeStr) return '';
+  const d = dateStr ? new Date(dateStr+'T'+(timeStr||'00:00')) : (timeStr ? (function(){ const today=new Date(); const [h,m]=timeStr.split(':'); today.setHours(+h, +m, 0,0); return today; })() : null);
+  if(!d) return '';
+  return d.toLocaleString();
+}
 
-    function deleteProject(id){
-      const idx = state.projects.findIndex(p => p.id === id);
-      if(idx === -1) return;
-      state.projects.splice(idx,1);
-      if(state.projects.length) state.selectedProjectId = state.projects[0].id;
-      else state.selectedProjectId = null;
-      save(); render();
-    }
-
-    function editProjectName(id, newName){
-      const p = state.projects.find(p=>p.id===id);
-      if(!p) return;
-      p.name = newName;
-      save(); render();
-    }
-
-    function addTask(text){
-      if(!text || !state.selectedProjectId) return;
-      const project = state.projects.find(p=>p.id===state.selectedProjectId);
-      if(!project) return;
-      project.tasks.unshift({ id: uid(), text: text.trim(), done:false, createdAt: Date.now() });
-      save(); render();
-    }
-
-    function toggleTask(projectId, taskId){
-      const p = state.projects.find(p=>p.id===projectId);
-      if(!p) return;
-      const t = p.tasks.find(t=>t.id===taskId);
-      if(!t) return;
-      t.done = !t.done;
-      save(); render();
-    }
-
-    function deleteTask(projectId, taskId){
-      const p = state.projects.find(p=>p.id===projectId);
-      if(!p) return;
-      p.tasks = p.tasks.filter(t=>t.id!==taskId);
-      save(); render();
-    }
-
-    function editTask(projectId, taskId, newText){
-      const p = state.projects.find(p=>p.id===projectId);
-      if(!p) return;
-      const t = p.tasks.find(t=>t.id===taskId);
-      if(!t) return;
-      t.text = newText;
-      save(); render();
-    }
-
-    function clearCompleted(projectId){
-      const p = state.projects.find(p=>p.id===projectId);
-      if(!p) return;
-      p.tasks = p.tasks.filter(t=>!t.done);
-      save(); render();
-    }
-
-    function exportJson(){
-      const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = 'tasks-export.json'; document.body.appendChild(a); a.click();
-      setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 3000);
-    }
-
-    function importJson(jsonText){
-      try{
-        const parsed = JSON.parse(jsonText);
-        if(parsed && Array.isArray(parsed.projects)){
-          state = parsed;
-          if(!state.selectedProjectId && state.projects.length) state.selectedProjectId = state.projects[0].id;
-          save();
-          render();
-          alert('Import complete.');
-        } else throw new Error('Invalid format');
-      }catch(e){ alert('Failed to import JSON: ' + e.message) }
-    }
-
-    /* ---------- Render ---------- */
-    function render(){
-      // projects select
-      projectSelect.innerHTML = '';
-      state.projects.forEach(p=>{
-        const opt = document.createElement('option');
-        opt.value = p.id; opt.textContent = p.name;
-        projectSelect.appendChild(opt);
-      });
-      if(state.selectedProjectId){
-        projectSelect.value = state.selectedProjectId;
-      } else {
-        // no projects -> create default
-        projectSelect.value = '';
-      }
-
-      // meta
-      const proj = state.projects.find(p => p.id === state.selectedProjectId);
-      if(!proj){
-        metaInfo.textContent = 'No project selected. Create one.';
-        taskList.innerHTML = '';
-        return;
-      }
-      metaInfo.textContent = `${proj.tasks.length} task${proj.tasks.length===1?'':'s'} — last updated ${new Date().toLocaleString()}`;
-
-      // tasks list
-      taskList.innerHTML = '';
-      proj.tasks.forEach(task=>{
-        const li = document.createElement('li');
-        if(task.done) li.classList.add('done');
-
-        // label + toggle + text
-        const label = document.createElement('label');
-        label.className = 'task';
-        label.setAttribute('for', `t-${task.id}`);
-
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.className = 'toggle';
-        checkbox.id = `t-${task.id}`;
-        checkbox.checked = !!task.done;
-        checkbox.dataset.taskId = task.id;
-
-        const span = document.createElement('span');
-        span.className = 'task-text';
-        span.innerHTML = escapeHtml(task.text);
-
-        label.appendChild(checkbox);
-        label.appendChild(span);
-
-        // actions
-        const actions = document.createElement('div');
-        actions.className = 'task-actions';
-
-        const editBtn = document.createElement('button');
-        editBtn.className = 'icon-btn';
-        editBtn.title = 'Edit';
-        editBtn.innerHTML = '✏️';
-        editBtn.dataset.taskId = task.id;
-
-        const delBtn = document.createElement('button');
-        delBtn.className = 'icon-btn';
-        delBtn.title = 'Delete';
-        delBtn.innerHTML = '🗑';
-        delBtn.dataset.taskId = task.id;
-
-        actions.appendChild(editBtn);
-        actions.appendChild(delBtn);
-
-        li.appendChild(label);
-        li.appendChild(actions);
-        li.dataset.taskId = task.id;
-
-        taskList.appendChild(li);
+function renderTasks(){
+  const p = currentProject();
+  if(!p){ tasksContainer.innerHTML='<div class="small">No project. Create one.</div>'; return; }
+  if(timelineMode){
+    // timeline grouped by date/time (sorted)
+    const events = p.tasks.slice().sort((a,b)=>{
+      const A = (a.date?a.date:'') + (a.time?a.time:'');
+      const B = (b.date?b.date:'') + (b.time?b.time:'');
+      return (A>B)?1:(A<B?-1:0);
+    });
+    tasksContainer.innerHTML = '<div class="timeline">'+events.map(t=>{
+      return `<div class="timeline-event ${t.done?'done':''}" data-id="${t.id}">
+        <div style="width:80px"><div class="small">${t.date||''}</div><div class="small">${t.time||''}</div></div>
+        <div style="flex:1"><div><strong>${escapeHtml(t.text)}</strong></div><div class="task-meta">${t.duration? t.duration+'m':''} ${t.repeat? ' · '+t.repeat:''}</div></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="chip" data-action="timer" data-id="${t.id}">Timer</button>
+          <button class="chip" data-action="edit" data-id="${t.id}">Edit</button>
+          <button class="chip" data-action="delete" data-id="${t.id}">Delete</button>
+        </div>
+      </div>`;
+    }).join('') + '</div>';
+  } else {
+    // bulleted list with drag & drop
+    tasksContainer.innerHTML = `<ul class="task-list" id="taskList">${p.tasks.map(t=>{
+      return `<li class="task ${t.done?'done':''}" draggable="true" data-id="${t.id}">
+        <div class="toggle ${t.done?'done':''}" data-action="toggle" data-id="${t.id}"></div>
+        <div class="task-text"><strong>${escapeHtml(t.text)}</strong><div class="task-meta">${formatTime(t.date,t.time)} ${t.duration? '· '+t.duration+'m':''} ${t.repeat? '· '+t.repeat:''}</div></div>
+        <div style="display:flex;gap:8px"><button class="chip" data-action="timer" data-id="${t.id}">Timer</button><button class="chip" data-action="edit" data-id="${t.id}">Edit</button><button class="chip" data-action="delete" data-id="${t.id}">Delete</button></div>
+      </li>`;
+    }).join('')}</ul>`;
+    // add drag & drop listeners
+    const list = document.getElementById('taskList');
+    let dragged = null;
+    if(list){
+      list.querySelectorAll('li.task').forEach(li=>{
+        li.addEventListener('dragstart', (ev)=>{ dragged = li; ev.dataTransfer?.setData('text/plain', li.dataset.id); li.style.opacity=0.5; });
+        li.addEventListener('dragend', (ev)=>{ dragged && (dragged.style.opacity='1'); dragged=null; save(); render(); });
+        li.addEventListener('dragover', (ev)=>{ ev.preventDefault(); li.style.borderTop='2px dashed #e0f3f2'; });
+        li.addEventListener('dragleave', ()=>{ li.style.borderTop=''; });
+        li.addEventListener('drop', (ev)=>{
+          ev.preventDefault();
+          li.style.borderTop='';
+          const movedId = dragged?.dataset.id || ev.dataTransfer?.getData('text/plain');
+          if(!movedId) return;
+          const arr = currentProject().tasks;
+          const from = arr.findIndex(x=>x.id===movedId);
+          const to = arr.findIndex(x=>x.id===li.dataset.id);
+          if(from<0 || to<0) return;
+          const [item] = arr.splice(from,1);
+          arr.splice(to,0,item);
+          save(); render();
+        });
       });
     }
+  }
+}
 
-    /* ---------- events ---------- */
-    newProjectBtn.addEventListener('click', ()=>{
-      const name = prompt('New project name') || 'New Project';
-      createProject(name.trim());
-    });
+// Actions
+function addTask(text, opts={}){
+  if(!text) return;
+  const p = currentProject(); if(!p){ alert('Select or create a project first'); return; }
+  p.tasks.unshift({
+    id: uid(), text: text.trim(), done:false,
+    date: opts.date||null, time: opts.time||null, duration: opts.duration||null, repeat: opts.repeat||null,
+    createdAt: Date.now()
+  });
+  save(); render();
+  // schedule notification if enabled and date/time set
+  if(state.settings.notify && opts.date && opts.time){
+    tryScheduleNotification(p.name, text, opts.date, opts.time);
+  }
+}
 
-    projectSelect.addEventListener('change', (e)=>{
-      state.selectedProjectId = e.target.value;
-      save(); render();
-    });
+function toggleTask(id){
+  const p = currentProject(); if(!p) return;
+  const t = p.tasks.find(x=>x.id===id); if(!t) return;
+  t.done = !t.done; save(); render();
+}
 
-    addTaskBtn.addEventListener('click', ()=>{
-      addTask(taskInput.value);
-      taskInput.value = ''; taskInput.focus();
-    });
+function deleteTask(id){
+  const p = currentProject(); if(!p) return;
+  p.tasks = p.tasks.filter(x=>x.id!==id); save(); render();
+}
 
-    taskInput.addEventListener('keydown', (e)=>{
-      if(e.key === 'Enter'){ addTaskBtn.click(); }
-    });
+function editTask(id){
+  const p = currentProject(); if(!p) return;
+  const t = p.tasks.find(x=>x.id===id); if(!t) return;
+  const newText = prompt('Edit task text', t.text); if(newText===null) return;
+  t.text = newText;
+  const nd = prompt('Date (YYYY-MM-DD) or blank', t.date||''); if(nd!==null) t.date = nd||null;
+  const nt = prompt('Time (HH:MM) or blank', t.time||''); if(nt!==null) t.time = nt||null;
+  const dur = prompt('Duration minutes (number) or blank', t.duration||''); if(dur!==null) t.duration = dur? +dur : null;
+  const rpt = prompt('Repeat (none/daily/weekly/custom) or blank', t.repeat||''); if(rpt!==null) t.repeat = rpt||null;
+  save(); render();
+}
 
-    // event delegation for task list
-    taskList.addEventListener('click', (e)=>{
-      const target = e.target;
-      // toggle
-      if(target.classList.contains('toggle')){
-        const taskId = target.dataset.taskId;
-        toggleTask(state.selectedProjectId, taskId);
-        return;
-      }
-      // edit
-      if(target && target.title === 'Edit' || target.innerText === '✏️'){
-        const taskId = target.dataset.taskId;
-        const p = state.projects.find(p=>p.id===state.selectedProjectId);
-        const t = p && p.tasks.find(t=>t.id===taskId);
-        if(!t) return;
-        const newText = prompt('Edit task', t.text);
-        if(newText !== null){ editTask(state.selectedProjectId, taskId, newText.trim()); }
-        return;
-      }
-      // delete
-      if(target && (target.title === 'Delete' || target.innerText === '🗑')){
-        const taskId = target.dataset.taskId;
-        if(confirm('Delete this task?')) deleteTask(state.selectedProjectId, taskId);
-        return;
-      }
-    });
+// Timer (focus) simple modal
+let runningTimer = null;
+function startTimer(taskId, minutes){
+  const p = currentProject(); if(!p) return;
+  const t = p.tasks.find(x=>x.id===taskId); if(!t) return;
+  const ms = (minutes||t.duration||25)*60*1000;
+  if(runningTimer) { clearTimeout(runningTimer.timeout); runningTimer = null; }
+  alert(`Starting timer for "${t.text}" — ${Math.round(ms/60000)} minutes.`);
+  runningTimer = { taskId, endsAt: Date.now()+ms, timeout: setTimeout(()=>{ notify(`Time's up: ${t.text}`); alert(`Timer finished: ${t.text}`); runningTimer=null; }, ms) };
+}
 
-    // double click to edit text (for accessibility)
-    taskList.addEventListener('dblclick', (e)=>{
-      const span = e.target.closest('.task-text');
-      if(!span) return;
-      const li = span.closest('li');
-      const taskId = li && li.dataset.taskId;
-      if(!taskId) return;
-      const p = state.projects.find(p => p.id === state.selectedProjectId);
-      const t = p && p.tasks.find(t=>t.id===taskId);
-      if(!t) return;
-      const newText = prompt('Edit task', t.text);
-      if(newText !== null) editTask(state.selectedProjectId, taskId, newText.trim());
-    });
+// Notifications
+async function requestNotificationPermission(){
+  try{
+    if(!('Notification' in window)) return false;
+    const p = await Notification.requestPermission();
+    return p === 'granted';
+  }catch(e){ return false; }
+}
+function notify(title, body=''){
+  if(!state.settings.notify) return;
+  if('Notification' in window && Notification.permission === 'granted'){
+    new Notification(title, { body });
+  } else {
+    // fallback small in-app alert
+    console.log('notify fallback', title, body);
+  }
+}
+function tryScheduleNotification(projectName, taskText, dateStr, timeStr){
+  // This app schedules client-side notifications by setting a timeout until the date (only works while page is open).
+  // Real push notifications require a server or platform push service (not implemented).
+  const when = new Date(dateStr + 'T' + timeStr);
+  const ms = when - Date.now();
+  if(ms>0 && ms < 7*24*3600*1000){ // schedule only if within a week for safety
+    setTimeout(()=>notify(`${projectName}: ${taskText}`, `${when.toLocaleString()}`), ms);
+  }
+}
 
-    renameProjectBtn.addEventListener('click', ()=>{
-      if(!state.selectedProjectId) return alert('No project selected');
-      const p = state.projects.find(p=>p.id===state.selectedProjectId);
-      const name = prompt('Rename project', p.name);
-      if(name !== null) editProjectName(p.id,name.trim());
-    });
+// Routines
+function saveRoutine(name, items){
+  state.routines.push({ id: uid(), name: name||'Routine', items: items.slice(), createdAt:Date.now() });
+  save(); alert('Routine saved');
+}
+function applyRoutineToProject(routineId, projectId){
+  const r = state.routines.find(x=>x.id===routineId); const p = findProject(projectId);
+  if(!r||!p) return;
+  r.items.slice().reverse().forEach(it=> p.tasks.unshift({ id: uid(), text: it, done:false, date:null, time:null, duration:null, repeat:null, createdAt:Date.now() }));
+  save(); render();
+  alert(`Applied routine "${r.name}" to project "${p.name}"`);
+}
 
-    deleteProjectBtn.addEventListener('click', ()=>{
-      if(!state.selectedProjectId) return alert('No project selected');
-      if(!confirm('Delete this project and all its tasks?')) return;
-      deleteProject(state.selectedProjectId);
-    });
+// CRUD Projects
+function createProject(name, color='#cdeffd', emoji='📁'){
+  state.projects.push({ id: uid(), name: name||'Project', color, emoji, tasks: [] });
+  state.selectedProjectId = state.projects[state.projects.length-1].id;
+  save(); render();
+}
+function renameProject(id, newName){
+  const p = findProject(id); if(!p) return; p.name = newName; save(); render();
+}
+function deleteProject(id){
+  if(!confirm('Delete project and its tasks?')) return;
+  state.projects = state.projects.filter(x=>x.id!==id);
+  state.selectedProjectId = state.projects[0]?.id || null;
+  save(); render();
+}
 
-    clearCompletedBtn.addEventListener('click', ()=>{
-      if(!state.selectedProjectId) return;
-      clearCompleted(state.selectedProjectId);
-    });
+// Export / Import
+function exportJson(){
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'tasks-export.json'; document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 3000);
+}
+function importJsonText(text){
+  try{
+    const parsed = JSON.parse(text);
+    if(parsed && parsed.projects){ state = parsed; save(); render(); alert('Imported'); }
+    else alert('Invalid JSON format');
+  }catch(e){ alert('Import error: '+e.message) }
+}
 
-    exportBtn.addEventListener('click', exportJson);
+// Event bindings
+addTaskBtn.addEventListener('click', ()=>{ addTask(taskInput.value, { date: taskDate.value||null, time: taskTime.value||null }); taskInput.value=''; taskDate.value=''; taskTime.value=''; });
+taskInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter') addTaskBtn.click(); });
 
-    importBtn.addEventListener('click', ()=>{
-      const text = prompt('Paste JSON to import (this will replace current data)');
-      if(text) importJson(text);
-    });
+toggleViewBtn.addEventListener('click', ()=>{ timelineMode = !timelineMode; toggleViewBtn.textContent = timelineMode ? 'List View' : 'Timeline View'; render(); });
 
-    /* ---------- init ---------- */
-    (function init(){
-      if(!load()){
-        // seed with one project
-        state = { projects: [ { id: uid(), name: 'Inbox', tasks: [] } ], selectedProjectId: null };
-        state.selectedProjectId = state.projects[0].id;
-        save();
-      }
-      render();
+projectSelect.addEventListener('change', (e)=>{ state.selectedProjectId = e.target.value; save(); render(); });
 
-      // register service worker (optional; requires https)
-      if('serviceWorker' in navigator){
-        navigator.serviceWorker.register('./sw.js').catch(()=>{/*fail silently*/});
-      }
-    })();
+newProjectBtn.addEventListener('click', ()=>{ const name = prompt('Project name') || 'Project'; const emoji = prompt('Emoji/icon (e.g. 📚)')||'📁'; const color = prompt('Color hex (e.g. #ffd166)')||'#ffd166'; createProject(name, color, emoji); });
+renameProjectBtn.addEventListener('click', ()=>{ if(!state.selectedProjectId) return alert('No project selected'); const p=findProject(state.selectedProjectId); const name = prompt('Rename to', p.name); if(name) renameProject(p.id, name); });
+deleteProjectBtn.addEventListener('click', ()=>{ if(!state.selectedProjectId) return; deleteProject(state.selectedProjectId); });
+
+document.addEventListener('click', (e)=>{
+  const action = e.target.dataset.action;
+  if(!action) return;
+  const id = e.target.dataset.id;
+  if(action==='toggle') toggleTask(id);
+  if(action==='delete') deleteTask(id);
+  if(action==='edit') editTask(id);
+  if(action==='timer') startTimer(id);
+});
+
+clearCompletedBtn.addEventListener('click', ()=>{ const p=currentProject(); if(!p) return; p.tasks = p.tasks.filter(x=>!x.done); save(); render(); });
+
+newRoutineBtn.addEventListener('click', ()=>{
+  const name = prompt('Routine name') || 'Routine';
+  const itemsText = prompt('Enter tasks separated by newline', 'Task 1\nTask 2\nTask 3');
+  if(itemsText===null) return;
+  const items = itemsText.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  saveRoutine(name, items);
+});
+
+applyRoutineBtn.addEventListener('click', ()=>{
+  if(!state.routines.length) return alert('No routines saved');
+  const pick = state.routines.map((r,i)=>`${i+1}. ${r.name}`).join('\n');
+  const n = prompt('Pick a routine number to apply:\n'+pick);
+  if(!n) return;
+  const idx = parseInt(n,10)-1;
+  if(isNaN(idx) || !state.routines[idx]) return alert('Invalid');
+  applyRoutineToProject(state.routines[idx].id, state.selectedProjectId);
+});
+
+exportBtn.addEventListener('click', exportJson);
+importBtn.addEventListener('click', ()=>{ const txt = prompt('Paste JSON to import (overwrites current)'); if(txt) importJsonText(txt); });
+
+notifyToggle.addEventListener('change', async (e)=>{ state.settings.notify = e.target.checked; save(); if(e.target.checked){ const ok = await requestNotificationPermission(); if(!ok){ alert('Notifications permission denied or not available in this browser/OS.'); state.settings.notify=false; notifyToggle.checked=false; save(); } } });
+
+projectSelect.addEventListener('click', (e)=>{}); // placeholder
+
+// simple keyboard shortcuts for power users
+document.addEventListener('keydown', (e)=>{
+  if(e.key==='/' && document.activeElement !== taskInput){ e.preventDefault(); taskInput.focus(); }
+});
+
+// init
+(function init(){
+  load();
+  if(!state.selectedProjectId && state.projects[0]) state.selectedProjectId = state.projects[0].id;
+  notifyToggle.checked = !!state.settings.notify;
+  render();
+  // register sw (optional)
+  if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js').catch(()=>{}); }
+})();
+
+function render(){
+  renderProjects();
+  renderTasks();
+}
   </script>
 </body>
 </html>
