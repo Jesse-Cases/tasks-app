@@ -1,429 +1,178 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Tasks — Projects & Routines</title>
-  <link rel="manifest" href="manifest.webmanifest">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tasks App</title>
   <style>
-    :root{
-      --accent:#0ea5a4; --bg:#f7fbfb; --card:#fff; --muted:#6b7280; --radius:12px;
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #f9f9f9;
     }
-    html,body{height:100%;margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial;background:linear-gradient(#f6fbfb,#fbfcfd);color:#0b1220}
-    .app{max-width:920px;margin:20px auto;padding:16px;background:var(--card);border-radius:12px;box-shadow:0 6px 20px rgba(2,6,23,0.06)}
-    header{display:flex;justify-content:space-between;align-items:center;gap:8px}
-    header h1{margin:0;font-size:18px}
-    .controls{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
-    .project-select, .input, .btn{height:44px;border-radius:10px;border:1px solid #e6eef0;padding:8px 12px;background:#fff}
-    .btn{cursor:pointer;background:var(--accent);color:white;border:0;font-weight:600}
-    .btn.ghost{background:transparent;color:var(--accent);border:1px solid rgba(14,165,164,0.12)}
-    .row{display:flex;gap:8px;align-items:center}
-    .left-col{width:36%;min-width:220px}
-    .right-col{flex:1}
-    .projects-list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
-    .project-item{display:flex;align-items:center;gap:8px;padding:10px;border-radius:10px;border:1px solid #f0f4f5;background:#fff;cursor:pointer}
-    .project-item.active{box-shadow:inset 0 0 0 2px rgba(14,165,164,0.08)}
-    .project-color{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px}
-    .meta{color:var(--muted);font-size:13px;margin-top:8px}
-    .task-list{list-style:disc;padding-left:20px;margin:12px 0}
-    li.task{display:flex;align-items:center;gap:10px;padding:8px 6px;border-radius:8px}
-    .task .toggle{width:22px;height:22px;border-radius:50%;border:2px solid var(--accent);display:inline-block;position:relative;flex:0 0 22px}
-    .task .toggle.done{background:var(--accent);box-shadow:inset 0 0 0 3px #fff}
-    .task-text{flex:1}
-    .done .task-text{ text-decoration:line-through;opacity:0.45}
-    .task-meta{font-size:12px;color:var(--muted)}
-    .small{font-size:13px;color:var(--muted)}
-    .chip{padding:6px 8px;border-radius:999px;border:1px solid #e6eef0;background:#fff;cursor:pointer}
-    .area{background:#f8fbfb;padding:10px;border-radius:10px;border:1px solid #f0f4f5}
-    .timeline{display:flex;flex-direction:column;gap:8px}
-    .timeline-event{display:flex;align-items:center;gap:12px;padding:8px;border-radius:8px;border:1px solid #eef6f6;background:#fff}
-    .timer{font-weight:700}
-    footer{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
-    @media (max-width:860px){.left-col{width:100%}.right-col{width:100%}.row{flex-direction:column;align-items:stretch}}
+
+    h1 {
+      text-align: center;
+    }
+
+    .input-row {
+      display: flex;
+      margin-bottom: 10px;
+      justify-content: center;
+    }
+
+    .input-row input {
+      flex: 1;
+      max-width: 300px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    .input-row button {
+      margin-left: 8px;
+      padding: 10px 14px;
+      border: none;
+      background: #007bff;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .input-row button:hover {
+      background: #0056b3;
+    }
+
+    .project {
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      background: #fff;
+    }
+
+    .project-header {
+      background: #e9ecef;
+      padding: 10px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .project-header:hover {
+      background: #dce0e4;
+    }
+
+    .tasks {
+      padding: 10px 20px;
+      display: none; /* collapsed by default */
+    }
+
+    .task {
+      display: flex;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .task input[type="radio"] {
+      margin-right: 10px;
+    }
+
+    .task.done label {
+      text-decoration: line-through;
+      color: #666;
+    }
   </style>
 </head>
 <body>
-  <div class="app" role="application" aria-labelledby="appTitle">
-    <header>
-      <h1 id="appTitle">Tasks — Projects & Routines</h1>
-      <div class="row">
-        <button id="newProjectBtn" class="btn ghost">+ Project</button>
-        <button id="newRoutineBtn" class="btn ghost">+ Routine</button>
-      </div>
-    </header>
+  <h1>📂 Task Manager</h1>
 
-    <div class="controls">
-      <div class="left-col">
-        <div class="area">
-          <div style="display:flex;gap:8px;align-items:center">
-            <select id="projectSelect" class="project-select" aria-label="Select project"></select>
-            <button id="renameProjectBtn" class="chip">Rename</button>
-            <button id="deleteProjectBtn" class="chip">Delete</button>
-          </div>
-          <div class="projects-list" id="projectsList"></div>
-          <div class="meta" id="projectStats"></div>
-        </div>
-      </div>
-
-      <div class="right-col">
-        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-          <input id="taskInput" class="input" type="text" placeholder="New task text (press Enter or Add)" />
-          <input id="taskTime" class="input" type="time" style="width:120px" />
-          <input id="taskDate" class="input" type="date" style="width:150px" />
-          <button id="addTaskBtn" class="btn">Add</button>
-        </div>
-
-        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
-          <button id="toggleViewBtn" class="chip">Timeline View</button>
-          <button id="clearCompleted" class="chip">Clear Done</button>
-          <button id="applyRoutineBtn" class="chip">Apply Routine</button>
-          <label class="small" style="margin-left:auto">Notify <input id="notifyToggle" type="checkbox" style="margin-left:6px"></label>
-        </div>
-
-        <div id="mainView" class="area">
-          <div id="tasksContainer"></div>
-        </div>
-
-        <div style="display:flex;gap:8px;margin-top:8px">
-          <button id="exportBtn" class="btn ghost">Export</button>
-          <button id="importBtn" class="btn ghost">Import</button>
-        </div>
-      </div>
-    </div>
-
-    <footer>
-      <div class="small">Local only. To sync later we can add iCloud / Dropbox / WebDAV.</div>
-      <div class="small">Tips: drag tasks to reorder. Tap a task to edit.</div>
-    </footer>
+  <div class="input-row">
+    <input type="text" id="new-project" placeholder="New project name...">
+    <button onclick="addProject()">Add Project</button>
   </div>
 
+  <div id="projects"></div>
+
   <script>
-/* Enhanced Tasks app: Projects, Routines, Timeline, Timer, Notifications.
-   Store: localStorage key TASKS_APP_v2
-*/
-const STORAGE_KEY = 'TASKS_APP_v2';
+    let projects = [];
 
-function uid(){ return Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7); }
-function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c])); }
+    function addProject() {
+      const input = document.getElementById("new-project");
+      const name = input.value.trim();
+      if (!name) return;
+      
+      projects.push({ name, tasks: [], expanded: false });
+      input.value = "";
+      renderProjects();
+    }
 
-let state = { projects: [], routines: [], selectedProjectId: null, settings: {notify:false} };
+    function addTask(projectIndex) {
+      const taskName = prompt("Enter task name:");
+      if (!taskName) return;
+      projects[projectIndex].tasks.push({ name: taskName, done: false });
+      renderProjects();
+    }
 
-// DOM refs
-const projectSelect = document.getElementById('projectSelect');
-const projectsList = document.getElementById('projectsList');
-const projectStats = document.getElementById('projectStats');
-const taskInput = document.getElementById('taskInput');
-const taskDate = document.getElementById('taskDate');
-const taskTime = document.getElementById('taskTime');
-const addTaskBtn = document.getElementById('addTaskBtn');
-const tasksContainer = document.getElementById('tasksContainer');
-const toggleViewBtn = document.getElementById('toggleViewBtn');
-const newProjectBtn = document.getElementById('newProjectBtn');
-const renameProjectBtn = document.getElementById('renameProjectBtn');
-const deleteProjectBtn = document.getElementById('deleteProjectBtn');
-const newRoutineBtn = document.getElementById('newRoutineBtn');
-const applyRoutineBtn = document.getElementById('applyRoutineBtn');
-const exportBtn = document.getElementById('exportBtn');
-const importBtn = document.getElementById('importBtn');
-const clearCompletedBtn = document.getElementById('clearCompleted');
-const notifyToggle = document.getElementById('notifyToggle');
+    function toggleTask(projectIndex, taskIndex) {
+      projects[projectIndex].tasks[taskIndex].done =
+        !projects[projectIndex].tasks[taskIndex].done;
+      renderProjects();
+    }
 
-let timelineMode = false;
+    function toggleProject(projectIndex) {
+      projects[projectIndex].expanded = !projects[projectIndex].expanded;
+      renderProjects();
+    }
 
-// Storage
-function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
-function load(){ try{ const raw = localStorage.getItem(STORAGE_KEY); if(raw) state = JSON.parse(raw); else seed(); }catch(e){ console.warn(e); seed(); } }
-function seed(){
-  state = {
-    projects: [
-      { id: uid(), name:'Inbox', color:'#ffd166', emoji:'📥', tasks: [
-        { id: uid(), text:'Welcome — try the Focus Timer', done:false, date:null, time:null, duration:25, repeat:null, createdAt:Date.now() },
-      ] }
-    ],
-    routines: [
-      { id: uid(), name:'Morning', items:[ 'Make bed','Brush teeth','Coffee' ], createdAt:Date.now() }
-    ],
-    selectedProjectId: null,
-    settings: { notify:false }
-  };
-  state.selectedProjectId = state.projects[0].id;
-  save();
-}
+    function renderProjects() {
+      const container = document.getElementById("projects");
+      container.innerHTML = "";
 
-// Utilities
-function findProject(id){ return state.projects.find(p=>p.id===id); }
-function currentProject(){ return findProject(state.selectedProjectId); }
+      projects.forEach((project, pIndex) => {
+        const projectDiv = document.createElement("div");
+        projectDiv.className = "project";
 
-// Render
-function renderProjects(){
-  projectSelect.innerHTML=''; projectsList.innerHTML='';
-  state.projects.forEach(p=>{
-    const opt = document.createElement('option'); opt.value=p.id; opt.textContent=p.name; projectSelect.appendChild(opt);
-    const div = document.createElement('div'); div.className='project-item'+(p.id===state.selectedProjectId?' active':'');
-    div.dataset.id=p.id;
-    div.innerHTML = `<div class="project-color" style="background:${p.color}">${p.emoji||'📁'}</div>
-                     <div style="flex:1"><strong>${escapeHtml(p.name)}</strong><div class="small">${p.tasks.length} task${p.tasks.length===1?'':'s'}</div></div>
-                     <div class="small">${p.tasks.filter(t=>t.done).length} done</div>`;
-    div.addEventListener('click', ()=>{ state.selectedProjectId = p.id; save(); render(); });
-    projectsList.appendChild(div);
-  });
-  if(state.selectedProjectId) projectSelect.value = state.selectedProjectId;
-  projectStats.textContent = currentProject()? `${currentProject().tasks.length} task(s)` : 'No project selected';
-}
+        // Header
+        const header = document.createElement("div");
+        header.className = "project-header";
+        header.onclick = () => toggleProject(pIndex);
 
-function formatTime(dateStr, timeStr){
-  if(!dateStr && !timeStr) return '';
-  const d = dateStr ? new Date(dateStr+'T'+(timeStr||'00:00')) : (timeStr ? (function(){ const today=new Date(); const [h,m]=timeStr.split(':'); today.setHours(+h, +m, 0,0); return today; })() : null);
-  if(!d) return '';
-  return d.toLocaleString();
-}
+        header.innerHTML = `
+          <span>${project.expanded ? "📂" : "📁"} ${project.name}</span>
+          <button onclick="event.stopPropagation(); addTask(${pIndex})">+ Task</button>
+        `;
+        projectDiv.appendChild(header);
 
-function renderTasks(){
-  const p = currentProject();
-  if(!p){ tasksContainer.innerHTML='<div class="small">No project. Create one.</div>'; return; }
-  if(timelineMode){
-    // timeline grouped by date/time (sorted)
-    const events = p.tasks.slice().sort((a,b)=>{
-      const A = (a.date?a.date:'') + (a.time?a.time:'');
-      const B = (b.date?b.date:'') + (b.time?b.time:'');
-      return (A>B)?1:(A<B?-1:0);
-    });
-    tasksContainer.innerHTML = '<div class="timeline">'+events.map(t=>{
-      return `<div class="timeline-event ${t.done?'done':''}" data-id="${t.id}">
-        <div style="width:80px"><div class="small">${t.date||''}</div><div class="small">${t.time||''}</div></div>
-        <div style="flex:1"><div><strong>${escapeHtml(t.text)}</strong></div><div class="task-meta">${t.duration? t.duration+'m':''} ${t.repeat? ' · '+t.repeat:''}</div></div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <button class="chip" data-action="timer" data-id="${t.id}">Timer</button>
-          <button class="chip" data-action="edit" data-id="${t.id}">Edit</button>
-          <button class="chip" data-action="delete" data-id="${t.id}">Delete</button>
-        </div>
-      </div>`;
-    }).join('') + '</div>';
-  } else {
-    // bulleted list with drag & drop
-    tasksContainer.innerHTML = `<ul class="task-list" id="taskList">${p.tasks.map(t=>{
-      return `<li class="task ${t.done?'done':''}" draggable="true" data-id="${t.id}">
-        <div class="toggle ${t.done?'done':''}" data-action="toggle" data-id="${t.id}"></div>
-        <div class="task-text"><strong>${escapeHtml(t.text)}</strong><div class="task-meta">${formatTime(t.date,t.time)} ${t.duration? '· '+t.duration+'m':''} ${t.repeat? '· '+t.repeat:''}</div></div>
-        <div style="display:flex;gap:8px"><button class="chip" data-action="timer" data-id="${t.id}">Timer</button><button class="chip" data-action="edit" data-id="${t.id}">Edit</button><button class="chip" data-action="delete" data-id="${t.id}">Delete</button></div>
-      </li>`;
-    }).join('')}</ul>`;
-    // add drag & drop listeners
-    const list = document.getElementById('taskList');
-    let dragged = null;
-    if(list){
-      list.querySelectorAll('li.task').forEach(li=>{
-        li.addEventListener('dragstart', (ev)=>{ dragged = li; ev.dataTransfer?.setData('text/plain', li.dataset.id); li.style.opacity=0.5; });
-        li.addEventListener('dragend', (ev)=>{ dragged && (dragged.style.opacity='1'); dragged=null; save(); render(); });
-        li.addEventListener('dragover', (ev)=>{ ev.preventDefault(); li.style.borderTop='2px dashed #e0f3f2'; });
-        li.addEventListener('dragleave', ()=>{ li.style.borderTop=''; });
-        li.addEventListener('drop', (ev)=>{
-          ev.preventDefault();
-          li.style.borderTop='';
-          const movedId = dragged?.dataset.id || ev.dataTransfer?.getData('text/plain');
-          if(!movedId) return;
-          const arr = currentProject().tasks;
-          const from = arr.findIndex(x=>x.id===movedId);
-          const to = arr.findIndex(x=>x.id===li.dataset.id);
-          if(from<0 || to<0) return;
-          const [item] = arr.splice(from,1);
-          arr.splice(to,0,item);
-          save(); render();
+        // Tasks
+        const tasksDiv = document.createElement("div");
+        tasksDiv.className = "tasks";
+        if (project.expanded) tasksDiv.style.display = "block";
+
+        project.tasks.forEach((task, tIndex) => {
+          const taskDiv = document.createElement("div");
+          taskDiv.className = "task" + (task.done ? " done" : "");
+          
+          const radio = document.createElement("input");
+          radio.type = "radio";
+          radio.checked = task.done;
+          radio.onclick = (e) => {
+            e.stopPropagation();
+            toggleTask(pIndex, tIndex);
+          };
+
+          const label = document.createElement("label");
+          label.textContent = task.name;
+
+          taskDiv.appendChild(radio);
+          taskDiv.appendChild(label);
+          tasksDiv.appendChild(taskDiv);
         });
+
+        projectDiv.appendChild(tasksDiv);
+        container.appendChild(projectDiv);
       });
     }
-  }
-}
-
-// Actions
-function addTask(text, opts={}){
-  if(!text) return;
-  const p = currentProject(); if(!p){ alert('Select or create a project first'); return; }
-  p.tasks.unshift({
-    id: uid(), text: text.trim(), done:false,
-    date: opts.date||null, time: opts.time||null, duration: opts.duration||null, repeat: opts.repeat||null,
-    createdAt: Date.now()
-  });
-  save(); render();
-  // schedule notification if enabled and date/time set
-  if(state.settings.notify && opts.date && opts.time){
-    tryScheduleNotification(p.name, text, opts.date, opts.time);
-  }
-}
-
-function toggleTask(id){
-  const p = currentProject(); if(!p) return;
-  const t = p.tasks.find(x=>x.id===id); if(!t) return;
-  t.done = !t.done; save(); render();
-}
-
-function deleteTask(id){
-  const p = currentProject(); if(!p) return;
-  p.tasks = p.tasks.filter(x=>x.id!==id); save(); render();
-}
-
-function editTask(id){
-  const p = currentProject(); if(!p) return;
-  const t = p.tasks.find(x=>x.id===id); if(!t) return;
-  const newText = prompt('Edit task text', t.text); if(newText===null) return;
-  t.text = newText;
-  const nd = prompt('Date (YYYY-MM-DD) or blank', t.date||''); if(nd!==null) t.date = nd||null;
-  const nt = prompt('Time (HH:MM) or blank', t.time||''); if(nt!==null) t.time = nt||null;
-  const dur = prompt('Duration minutes (number) or blank', t.duration||''); if(dur!==null) t.duration = dur? +dur : null;
-  const rpt = prompt('Repeat (none/daily/weekly/custom) or blank', t.repeat||''); if(rpt!==null) t.repeat = rpt||null;
-  save(); render();
-}
-
-// Timer (focus) simple modal
-let runningTimer = null;
-function startTimer(taskId, minutes){
-  const p = currentProject(); if(!p) return;
-  const t = p.tasks.find(x=>x.id===taskId); if(!t) return;
-  const ms = (minutes||t.duration||25)*60*1000;
-  if(runningTimer) { clearTimeout(runningTimer.timeout); runningTimer = null; }
-  alert(`Starting timer for "${t.text}" — ${Math.round(ms/60000)} minutes.`);
-  runningTimer = { taskId, endsAt: Date.now()+ms, timeout: setTimeout(()=>{ notify(`Time's up: ${t.text}`); alert(`Timer finished: ${t.text}`); runningTimer=null; }, ms) };
-}
-
-// Notifications
-async function requestNotificationPermission(){
-  try{
-    if(!('Notification' in window)) return false;
-    const p = await Notification.requestPermission();
-    return p === 'granted';
-  }catch(e){ return false; }
-}
-function notify(title, body=''){
-  if(!state.settings.notify) return;
-  if('Notification' in window && Notification.permission === 'granted'){
-    new Notification(title, { body });
-  } else {
-    // fallback small in-app alert
-    console.log('notify fallback', title, body);
-  }
-}
-function tryScheduleNotification(projectName, taskText, dateStr, timeStr){
-  // This app schedules client-side notifications by setting a timeout until the date (only works while page is open).
-  // Real push notifications require a server or platform push service (not implemented).
-  const when = new Date(dateStr + 'T' + timeStr);
-  const ms = when - Date.now();
-  if(ms>0 && ms < 7*24*3600*1000){ // schedule only if within a week for safety
-    setTimeout(()=>notify(`${projectName}: ${taskText}`, `${when.toLocaleString()}`), ms);
-  }
-}
-
-// Routines
-function saveRoutine(name, items){
-  state.routines.push({ id: uid(), name: name||'Routine', items: items.slice(), createdAt:Date.now() });
-  save(); alert('Routine saved');
-}
-function applyRoutineToProject(routineId, projectId){
-  const r = state.routines.find(x=>x.id===routineId); const p = findProject(projectId);
-  if(!r||!p) return;
-  r.items.slice().reverse().forEach(it=> p.tasks.unshift({ id: uid(), text: it, done:false, date:null, time:null, duration:null, repeat:null, createdAt:Date.now() }));
-  save(); render();
-  alert(`Applied routine "${r.name}" to project "${p.name}"`);
-}
-
-// CRUD Projects
-function createProject(name, color='#cdeffd', emoji='📁'){
-  state.projects.push({ id: uid(), name: name||'Project', color, emoji, tasks: [] });
-  state.selectedProjectId = state.projects[state.projects.length-1].id;
-  save(); render();
-}
-function renameProject(id, newName){
-  const p = findProject(id); if(!p) return; p.name = newName; save(); render();
-}
-function deleteProject(id){
-  if(!confirm('Delete project and its tasks?')) return;
-  state.projects = state.projects.filter(x=>x.id!==id);
-  state.selectedProjectId = state.projects[0]?.id || null;
-  save(); render();
-}
-
-// Export / Import
-function exportJson(){
-  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = 'tasks-export.json'; document.body.appendChild(a); a.click();
-  setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 3000);
-}
-function importJsonText(text){
-  try{
-    const parsed = JSON.parse(text);
-    if(parsed && parsed.projects){ state = parsed; save(); render(); alert('Imported'); }
-    else alert('Invalid JSON format');
-  }catch(e){ alert('Import error: '+e.message) }
-}
-
-// Event bindings
-addTaskBtn.addEventListener('click', ()=>{ addTask(taskInput.value, { date: taskDate.value||null, time: taskTime.value||null }); taskInput.value=''; taskDate.value=''; taskTime.value=''; });
-taskInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter') addTaskBtn.click(); });
-
-toggleViewBtn.addEventListener('click', ()=>{ timelineMode = !timelineMode; toggleViewBtn.textContent = timelineMode ? 'List View' : 'Timeline View'; render(); });
-
-projectSelect.addEventListener('change', (e)=>{ state.selectedProjectId = e.target.value; save(); render(); });
-
-newProjectBtn.addEventListener('click', ()=>{ const name = prompt('Project name') || 'Project'; const emoji = prompt('Emoji/icon (e.g. 📚)')||'📁'; const color = prompt('Color hex (e.g. #ffd166)')||'#ffd166'; createProject(name, color, emoji); });
-renameProjectBtn.addEventListener('click', ()=>{ if(!state.selectedProjectId) return alert('No project selected'); const p=findProject(state.selectedProjectId); const name = prompt('Rename to', p.name); if(name) renameProject(p.id, name); });
-deleteProjectBtn.addEventListener('click', ()=>{ if(!state.selectedProjectId) return; deleteProject(state.selectedProjectId); });
-
-document.addEventListener('click', (e)=>{
-  const action = e.target.dataset.action;
-  if(!action) return;
-  const id = e.target.dataset.id;
-  if(action==='toggle') toggleTask(id);
-  if(action==='delete') deleteTask(id);
-  if(action==='edit') editTask(id);
-  if(action==='timer') startTimer(id);
-});
-
-clearCompletedBtn.addEventListener('click', ()=>{ const p=currentProject(); if(!p) return; p.tasks = p.tasks.filter(x=>!x.done); save(); render(); });
-
-newRoutineBtn.addEventListener('click', ()=>{
-  const name = prompt('Routine name') || 'Routine';
-  const itemsText = prompt('Enter tasks separated by newline', 'Task 1\nTask 2\nTask 3');
-  if(itemsText===null) return;
-  const items = itemsText.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-  saveRoutine(name, items);
-});
-
-applyRoutineBtn.addEventListener('click', ()=>{
-  if(!state.routines.length) return alert('No routines saved');
-  const pick = state.routines.map((r,i)=>`${i+1}. ${r.name}`).join('\n');
-  const n = prompt('Pick a routine number to apply:\n'+pick);
-  if(!n) return;
-  const idx = parseInt(n,10)-1;
-  if(isNaN(idx) || !state.routines[idx]) return alert('Invalid');
-  applyRoutineToProject(state.routines[idx].id, state.selectedProjectId);
-});
-
-exportBtn.addEventListener('click', exportJson);
-importBtn.addEventListener('click', ()=>{ const txt = prompt('Paste JSON to import (overwrites current)'); if(txt) importJsonText(txt); });
-
-notifyToggle.addEventListener('change', async (e)=>{ state.settings.notify = e.target.checked; save(); if(e.target.checked){ const ok = await requestNotificationPermission(); if(!ok){ alert('Notifications permission denied or not available in this browser/OS.'); state.settings.notify=false; notifyToggle.checked=false; save(); } } });
-
-projectSelect.addEventListener('click', (e)=>{}); // placeholder
-
-// simple keyboard shortcuts for power users
-document.addEventListener('keydown', (e)=>{
-  if(e.key==='/' && document.activeElement !== taskInput){ e.preventDefault(); taskInput.focus(); }
-});
-
-// init
-(function init(){
-  load();
-  if(!state.selectedProjectId && state.projects[0]) state.selectedProjectId = state.projects[0].id;
-  notifyToggle.checked = !!state.settings.notify;
-  render();
-  // register sw (optional)
-  if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js').catch(()=>{}); }
-})();
-
-function render(){
-  renderProjects();
-  renderTasks();
-}
   </script>
 </body>
 </html>
