@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Tasks — Projects</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <style>
+    :root{
+      --accent: #0ea5a4;
+      --bg: #fbfcfd;
+      --card: #ffffff;
+      --muted: #6b7280;
+      --radius: 12px;
+      --tap: 48px; /* target size */
+    }
+    html,body{height:100%;margin:0;font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;}
+    body{background:linear-gradient(#f6f9fb, #fbfcfd);display:flex;align-items:flex-start;justify-content:center;padding:28px;}
+    .app{width:100%;max-width:820px;background:var(--card);box-shadow:0 6px 20px rgba(2,6,23,0.08);border-radius:var(--radius);padding:18px;box-sizing:border-box}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    header h1{font-size:18px;margin:0}
+    .topbar{display:flex;gap:8px;align-items:center}
+    .project-select{height:40px;border-radius:8px;border:1px solid #e6eef0;padding:6px 10px;background:#fff}
+    .btn{height:40px;padding:0 12px;border-radius:8px;border:0;background:var(--accent);color:white;font-weight:600;cursor:pointer}
+    .btn.ghost{background:transparent;color:var(--accent);border:1px solid rgba(14,165,164,0.12)}
+    .controls{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+    .add-task{display:flex;gap:8px;margin-bottom:10px}
+    .add-task input[type="text"]{flex:1;height:44px;padding:10px;border-radius:10px;border:1px solid #e6eef0;font-size:16px}
+    .projects-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+    .project-chip{padding:6px 10px;border-radius:999px;border:1px solid #e6eef0;background:#fff;cursor:pointer}
+    .project-chip.active{background:linear-gradient(90deg,var(--accent), #38b2ac);color:white;border:0}
+    .meta{color:var(--muted);font-size:13px;margin-bottom:12px}
+    ul.task-list{list-style:disc; padding-left:20px; margin:0}
+    ul.task-list li{padding:8px 6px; display:flex; align-items:center; gap:10px;}
+    label.task{display:inline-flex; align-items:center; gap:12px; flex:1; cursor:pointer; user-select:none}
+    /* Custom circular toggle that *behaves* like a radio visually but is actually a checkbox */
+    input[type="checkbox"].toggle{
+      -webkit-appearance:none; appearance:none;
+      width:22px; height:22px; border-radius:50%;
+      border:2px solid var(--accent); display:inline-block; vertical-align:middle;
+      position:relative; flex:0 0 22px; margin:0;
+    }
+    input[type="checkbox"].toggle:checked{
+      background:var(--accent);
+      box-shadow: inset 0 0 0 3px white;
+    }
+    .task-text{font-size:16px;line-height:1.2}
+    .done .task-text{ text-decoration:line-through; opacity:0.45 }
+    .task-actions{display:flex;gap:8px;align-items:center}
+    .icon-btn{height:34px;width:34px;border-radius:8px;border:0;background:transparent;cursor:pointer;font-size:16px}
+    .small-muted{font-size:13px;color:var(--muted)}
+    footer{margin-top:12px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+    .danger{color:#ef4444}
+    @media (max-width:520px){
+      .app{padding:14px}
+      .btn{height:40px}
+    }
+  </style>
+</head>
+<body>
+  <div class="app" role="application" aria-labelledby="appTitle">
+    <header>
+      <h1 id="appTitle">Tasks — Projects</h1>
+      <div class="topbar">
+        <button id="newProjectBtn" class="btn ghost" title="New project">+ Project</button>
+        <button id="clearCompleted" class="btn" title="Clear completed">Clear done</button>
+      </div>
+    </header>
+
+    <div class="controls">
+      <select id="projectSelect" class="project-select" aria-label="Select project"></select>
+      <button id="renameProjectBtn" class="btn ghost" title="Rename project">Rename</button>
+      <button id="deleteProjectBtn" class="btn ghost danger" title="Delete project">Delete</button>
+    </div>
+
+    <div class="add-task">
+      <input id="taskInput" type="text" placeholder="Add a task to the selected project and press Enter" aria-label="New task">
+      <button id="addTaskBtn" class="btn">Add</button>
+    </div>
+
+    <div class="meta" id="metaInfo"></div>
+
+    <ul id="taskList" class="task-list" aria-live="polite"></ul>
+
+    <footer>
+      <div class="small-muted">Data stored locally on this device (no cloud).</div>
+      <div>
+        <button id="exportBtn" class="btn ghost" title="Export JSON">Export</button>
+        <button id="importBtn" class="btn ghost" title="Import JSON">Import</button>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    /* ======= Simple iPad-friendly Tasks + Projects app =======
+       - Projects contain tasks.
+       - Tasks are toggled via circular checkbox (styled like radio).
+       - Completed tasks are crossed out.
+       - Data persists to localStorage under key TASKS_APP_v1
+    ===========================================================*/
+
+    const STORAGE_KEY = 'TASKS_APP_v1';
+
+    function uid(){
+      return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,8);
+    }
+
+    // safe text escaping
+    function escapeHtml(s){
+      return String(s).replace(/[&<>"']/g, c => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"
+      }[c]));
+    }
+
+    // default data structure
+    let state = {
+      projects: [],
+      selectedProjectId: null
+    };
+
+    // DOM refs
+    const projectSelect = document.getElementById('projectSelect');
+    const newProjectBtn = document.getElementById('newProjectBtn');
+    const addTaskBtn = document.getElementById('addTaskBtn');
+    const taskInput = document.getElementById('taskInput');
+    const taskList = document.getElementById('taskList');
+    const metaInfo = document.getElementById('metaInfo');
+    const renameProjectBtn = document.getElementById('renameProjectBtn');
+    const deleteProjectBtn = document.getElementById('deleteProjectBtn');
+    const clearCompletedBtn = document.getElementById('clearCompleted');
+    const exportBtn = document.getElementById('exportBtn');
+    const importBtn = document.getElementById('importBtn');
+
+    function save(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function load(){
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return false;
+      try{
+        const parsed = JSON.parse(raw);
+        if(parsed && Array.isArray(parsed.projects)) { state = parsed; return true; }
+      }catch(e){ console.warn('Failed to parse state', e) }
+      return false;
+    }
+
+    function createProject(name){
+      const id = uid();
+      const project = { id, name: name || 'New Project', tasks: [] };
+      state.projects.push(project);
+      state.selectedProjectId = id;
+      save(); render();
+    }
+
+    function deleteProject(id){
+      const idx = state.projects.findIndex(p => p.id === id);
+      if(idx === -1) return;
+      state.projects.splice(idx,1);
+      if(state.projects.length) state.selectedProjectId = state.projects[0].id;
+      else state.selectedProjectId = null;
+      save(); render();
+    }
+
+    function editProjectName(id, newName){
+      const p = state.projects.find(p=>p.id===id);
+      if(!p) return;
+      p.name = newName;
+      save(); render();
+    }
+
+    function addTask(text){
+      if(!text || !state.selectedProjectId) return;
+      const project = state.projects.find(p=>p.id===state.selectedProjectId);
+      if(!project) return;
+      project.tasks.unshift({ id: uid(), text: text.trim(), done:false, createdAt: Date.now() });
+      save(); render();
+    }
+
+    function toggleTask(projectId, taskId){
+      const p = state.projects.find(p=>p.id===projectId);
+      if(!p) return;
+      const t = p.tasks.find(t=>t.id===taskId);
+      if(!t) return;
+      t.done = !t.done;
+      save(); render();
+    }
+
+    function deleteTask(projectId, taskId){
+      const p = state.projects.find(p=>p.id===projectId);
+      if(!p) return;
+      p.tasks = p.tasks.filter(t=>t.id!==taskId);
+      save(); render();
+    }
+
+    function editTask(projectId, taskId, newText){
+      const p = state.projects.find(p=>p.id===projectId);
+      if(!p) return;
+      const t = p.tasks.find(t=>t.id===taskId);
+      if(!t) return;
+      t.text = newText;
+      save(); render();
+    }
+
+    function clearCompleted(projectId){
+      const p = state.projects.find(p=>p.id===projectId);
+      if(!p) return;
+      p.tasks = p.tasks.filter(t=>!t.done);
+      save(); render();
+    }
+
+    function exportJson(){
+      const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'tasks-export.json'; document.body.appendChild(a); a.click();
+      setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 3000);
+    }
+
+    function importJson(jsonText){
+      try{
+        const parsed = JSON.parse(jsonText);
+        if(parsed && Array.isArray(parsed.projects)){
+          state = parsed;
+          if(!state.selectedProjectId && state.projects.length) state.selectedProjectId = state.projects[0].id;
+          save();
+          render();
+          alert('Import complete.');
+        } else throw new Error('Invalid format');
+      }catch(e){ alert('Failed to import JSON: ' + e.message) }
+    }
+
+    /* ---------- Render ---------- */
+    function render(){
+      // projects select
+      projectSelect.innerHTML = '';
+      state.projects.forEach(p=>{
+        const opt = document.createElement('option');
+        opt.value = p.id; opt.textContent = p.name;
+        projectSelect.appendChild(opt);
+      });
+      if(state.selectedProjectId){
+        projectSelect.value = state.selectedProjectId;
+      } else {
+        // no projects -> create default
+        projectSelect.value = '';
+      }
+
+      // meta
+      const proj = state.projects.find(p => p.id === state.selectedProjectId);
+      if(!proj){
+        metaInfo.textContent = 'No project selected. Create one.';
+        taskList.innerHTML = '';
+        return;
+      }
+      metaInfo.textContent = `${proj.tasks.length} task${proj.tasks.length===1?'':'s'} — last updated ${new Date().toLocaleString()}`;
+
+      // tasks list
+      taskList.innerHTML = '';
+      proj.tasks.forEach(task=>{
+        const li = document.createElement('li');
+        if(task.done) li.classList.add('done');
+
+        // label + toggle + text
+        const label = document.createElement('label');
+        label.className = 'task';
+        label.setAttribute('for', `t-${task.id}`);
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'toggle';
+        checkbox.id = `t-${task.id}`;
+        checkbox.checked = !!task.done;
+        checkbox.dataset.taskId = task.id;
+
+        const span = document.createElement('span');
+        span.className = 'task-text';
+        span.innerHTML = escapeHtml(task.text);
+
+        label.appendChild(checkbox);
+        label.appendChild(span);
+
+        // actions
+        const actions = document.createElement('div');
+        actions.className = 'task-actions';
+
+        const editBtn = document.createElement('button');
+        editBtn.className = 'icon-btn';
+        editBtn.title = 'Edit';
+        editBtn.innerHTML = '✏️';
+        editBtn.dataset.taskId = task.id;
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'icon-btn';
+        delBtn.title = 'Delete';
+        delBtn.innerHTML = '🗑';
+        delBtn.dataset.taskId = task.id;
+
+        actions.appendChild(editBtn);
+        actions.appendChild(delBtn);
+
+        li.appendChild(label);
+        li.appendChild(actions);
+        li.dataset.taskId = task.id;
+
+        taskList.appendChild(li);
+      });
+    }
+
+    /* ---------- events ---------- */
+    newProjectBtn.addEventListener('click', ()=>{
+      const name = prompt('New project name') || 'New Project';
+      createProject(name.trim());
+    });
+
+    projectSelect.addEventListener('change', (e)=>{
+      state.selectedProjectId = e.target.value;
+      save(); render();
+    });
+
+    addTaskBtn.addEventListener('click', ()=>{
+      addTask(taskInput.value);
+      taskInput.value = ''; taskInput.focus();
+    });
+
+    taskInput.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter'){ addTaskBtn.click(); }
+    });
+
+    // event delegation for task list
+    taskList.addEventListener('click', (e)=>{
+      const target = e.target;
+      // toggle
+      if(target.classList.contains('toggle')){
+        const taskId = target.dataset.taskId;
+        toggleTask(state.selectedProjectId, taskId);
+        return;
+      }
+      // edit
+      if(target && target.title === 'Edit' || target.innerText === '✏️'){
+        const taskId = target.dataset.taskId;
+        const p = state.projects.find(p=>p.id===state.selectedProjectId);
+        const t = p && p.tasks.find(t=>t.id===taskId);
+        if(!t) return;
+        const newText = prompt('Edit task', t.text);
+        if(newText !== null){ editTask(state.selectedProjectId, taskId, newText.trim()); }
+        return;
+      }
+      // delete
+      if(target && (target.title === 'Delete' || target.innerText === '🗑')){
+        const taskId = target.dataset.taskId;
+        if(confirm('Delete this task?')) deleteTask(state.selectedProjectId, taskId);
+        return;
+      }
+    });
+
+    // double click to edit text (for accessibility)
+    taskList.addEventListener('dblclick', (e)=>{
+      const span = e.target.closest('.task-text');
+      if(!span) return;
+      const li = span.closest('li');
+      const taskId = li && li.dataset.taskId;
+      if(!taskId) return;
+      const p = state.projects.find(p => p.id === state.selectedProjectId);
+      const t = p && p.tasks.find(t=>t.id===taskId);
+      if(!t) return;
+      const newText = prompt('Edit task', t.text);
+      if(newText !== null) editTask(state.selectedProjectId, taskId, newText.trim());
+    });
+
+    renameProjectBtn.addEventListener('click', ()=>{
+      if(!state.selectedProjectId) return alert('No project selected');
+      const p = state.projects.find(p=>p.id===state.selectedProjectId);
+      const name = prompt('Rename project', p.name);
+      if(name !== null) editProjectName(p.id,name.trim());
+    });
+
+    deleteProjectBtn.addEventListener('click', ()=>{
+      if(!state.selectedProjectId) return alert('No project selected');
+      if(!confirm('Delete this project and all its tasks?')) return;
+      deleteProject(state.selectedProjectId);
+    });
+
+    clearCompletedBtn.addEventListener('click', ()=>{
+      if(!state.selectedProjectId) return;
+      clearCompleted(state.selectedProjectId);
+    });
+
+    exportBtn.addEventListener('click', exportJson);
+
+    importBtn.addEventListener('click', ()=>{
+      const text = prompt('Paste JSON to import (this will replace current data)');
+      if(text) importJson(text);
+    });
+
+    /* ---------- init ---------- */
+    (function init(){
+      if(!load()){
+        // seed with one project
+        state = { projects: [ { id: uid(), name: 'Inbox', tasks: [] } ], selectedProjectId: null };
+        state.selectedProjectId = state.projects[0].id;
+        save();
+      }
+      render();
+
+      // register service worker (optional; requires https)
+      if('serviceWorker' in navigator){
+        navigator.serviceWorker.register('./sw.js').catch(()=>{/*fail silently*/});
+      }
+    })();
+  </script>
+</body>
+</html>
